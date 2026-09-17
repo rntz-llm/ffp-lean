@@ -72,11 +72,10 @@ mutual
       let T := t.sem γ (c.proj₁ δ)
       let U := fun ω₁ => u.sem (Env.append ω₁ γ) (c.proj₂ δ)
       ⟨.bind m T.map (fun ω₁ => (U ω₁).map) (fun f y => f.fn y)
-          (fun ω₁ _ h => ⟨fun hf => h (hf _), fun hy => h ((T.map.fn ω₁).pres _ hy)⟩),
-       fun h => match c.anyNil δ h with
-         | .inl h₁ => FinMap.bind_isNil_left (T.pres h₁) fun _ _ hf => hf _
-         | .inr h₂ => FinMap.bind_isNil_right (fun ω₁ ω₂ => (U ω₁).pres h₂ ω₂)
-                        fun f y hy => f.pres y hy⟩
+          (fun ω₁ _ h => h.elim (fun hf => hf _) (fun hy => (T.map.fn ω₁).pres _ hy)),
+       fun h => FinMap.bind_isNil fun ω => match c.anyNil δ h with
+         | .inl h₁ => .inl (T.pres h₁ _)
+         | .inr h₂ => .inr ((U _).pres h₂ _)⟩
     -- ⟦t x⟧ γ δ = {(ω,x) ↦ y : ω ↦ f ∈ ⟦t⟧γδ, x ↦ y ∈ f}
     | .appV i t, γ, δ =>
       let T := t.sem γ δ
@@ -84,7 +83,7 @@ mutual
     -- ⟦t e⟧ γ δ = {ω ↦ f (⟦e⟧(γ,ω)) : ω ↦ f ∈ ⟦t⟧γδ}
     | .appE t e, γ, δ =>
       let T := t.sem γ δ
-      ⟨.comp T.map (fun ω f => f.fn (e.sem (Env.append ω γ))) (fun _ _ h hf => h (hf _)),
+      ⟨.comp T.map (fun ω f => f.fn (e.sem (Env.append ω γ))) (fun _ _ hf => hf _),
        fun h ω => T.pres h ω _⟩
     -- ⟦⟨t,u⟩⟧ γ δ = {ω ↦ ⟨x,y⟩ : ω ↦ x ∈ ⟦t⟧γδ, ω ↦ y ∈ ⟦u⟧γδ}
     | .amp t u, γ, δ =>
@@ -94,20 +93,18 @@ mutual
     -- ⟦πᵢ t⟧ γ δ = {ω ↦ πᵢ x : ω ↦ x ∈ ⟦t⟧γδ}
     | .proj₁ t, γ, δ =>
       let T := t.sem γ δ
-      ⟨.comp T.map (fun _ x => x.1) (fun _ _ h hx => h hx.1), fun h ω => (T.pres h ω).1⟩
+      ⟨.comp T.map (fun _ x => x.1) (fun _ _ hx => hx.1), fun h ω => (T.pres h ω).1⟩
     | .proj₂ t, γ, δ =>
       let T := t.sem γ δ
-      ⟨.comp T.map (fun _ x => x.2) (fun _ _ h hx => h hx.2), fun h ω => (T.pres h ω).2⟩
+      ⟨.comp T.map (fun _ x => x.2) (fun _ _ hx => hx.2), fun h ω => (T.pres h ω).2⟩
     -- ⟦(t,u)⟧ γ δ = {(ω₁,ω₂) ↦ (x,y) : ω₁ ↦ x ∈ ⟦t⟧ γ (π_Δ₁ δ), ω₂ ↦ y ∈ ⟦u⟧ (γ,ω₁) (π_Δ₂ δ)}
     | .tensor c m t u, γ, δ =>
       let T := t.sem γ (c.proj₁ δ)
       let U := fun ω₁ => u.sem (Env.append ω₁ γ) (c.proj₂ δ)
-      ⟨.bind m T.map (fun ω₁ => (U ω₁).map) Prod.mk
-          (fun _ _ h => ⟨fun hx => h (.inl hx), fun hy => h (.inr hy)⟩),
-       fun h => match c.anyNil δ h with
-         | .inl h₁ => FinMap.bind_isNil_left (T.pres h₁) fun _ _ hx => .inl hx
-         | .inr h₂ => FinMap.bind_isNil_right (fun ω₁ ω₂ => (U ω₁).pres h₂ ω₂)
-                        fun _ _ hy => .inr hy⟩
+      ⟨.bind m T.map (fun ω₁ => (U ω₁).map) Prod.mk (fun _ _ h => h),
+       fun h => FinMap.bind_isNil fun ω => match c.anyNil δ h with
+         | .inl h₁ => .inl (T.pres h₁ _)
+         | .inr h₂ => .inr ((U _).pres h₂ _)⟩
     -- ⟦let (x,y) = t in u⟧ γ δ
     --   = {(ω₁,ω₂) ↦ z : ω₁ ↦ (x,y) ∈ ⟦t⟧ γ (π_Δ₁ δ), ω₂ ↦ z ∈ ⟦u⟧ (γ,ω₁) (π_Δ₂ δ, x, y)}
     | .letTensor c m t u, γ, δ =>
@@ -115,13 +112,11 @@ mutual
       let U := fun ω₁ =>
         u.sem (Env.append ω₁ γ) ((T.map.fn ω₁).2, (T.map.fn ω₁).1, c.proj₂ δ)
       ⟨.bind m T.map (fun ω₁ => (U ω₁).map) (fun _ z => z)
-          (fun ω₁ ω₂ h =>
-            ⟨fun hxy => h ((U ω₁).pres (Or.elim hxy (fun hx => .inr (.inl hx)) .inl) ω₂), h⟩),
-       fun h => match c.anyNil δ h with
-         | .inl h₁ => FinMap.bind_isNil_left (T.pres h₁) fun ω₁ ω₂ hxy =>
-                        (U ω₁).pres (Or.elim hxy (fun hx => .inr (.inl hx)) .inl) ω₂
-         | .inr h₂ => FinMap.bind_isNil_right (fun ω₁ ω₂ => (U ω₁).pres (.inr (.inr h₂)) ω₂)
-                        fun _ _ hz => hz⟩
+          (fun ω₁ ω₂ h => h.elim
+            (fun hxy => (U ω₁).pres (hxy.elim (fun hx => .inr (.inl hx)) .inl) ω₂) id),
+       fun h => FinMap.bind_isNil fun ω => match c.anyNil δ h with
+         | .inl h₁ => .inl (T.pres h₁ _)
+         | .inr h₂ => .inr ((U _).pres (.inr (.inr h₂)) _)⟩
     -- ⟦Γ/·/· ⊢ just e : maybe A⟧ γ δ = {() ↦ just (⟦e⟧γ) : δ ≠ nil}
     | .just e, γ, _ => ⟨.single (some (e.sem γ)), fun h => False.elim h⟩
     -- ⟦let just x = t in u⟧ γ δ

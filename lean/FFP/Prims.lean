@@ -68,9 +68,8 @@ def times : PMap (PSet.tensor PSet.nat PSet.nat) PSet.nat where
 def eq (A : Type) [DecidableEq A] (a : A) : FinMap A PSet.bool where
   fn b := if a = b then some () else none
   supp := [a]
-  supp_ok b h :=
-    if hab : a = b then List.mem_singleton.2 hab.symm
-    else absurd (by simp [hab]) h
+  supp_ok b :=
+    if hab : a = b then .inl (List.mem_singleton.2 hab.symm) else .inr (by simp [hab])
 
 end Prim
 
@@ -82,19 +81,20 @@ namespace FinMap
 def ofList {A : Type} [DecidableEq A] (l : List A) : FinMap A PSet.bool where
   fn a := if a ∈ l then some () else none
   supp := l
-  supp_ok a h := if ha : a ∈ l then ha else absurd (by simp [ha]) h
+  supp_ok a := if ha : a ∈ l then .inl ha else .inr (by simp [ha])
 
 /-- A finite relation `A ⇒ B ⇒ bool` from a list of pairs. -/
 def ofRel {A B : Type} [DecidableEq A] [DecidableEq B] (l : List (A × B)) :
     FinMap A (PSet.fmap B PSet.bool) where
   fn a := ⟨fun b => if (a, b) ∈ l then some () else none, l.map Prod.snd,
-           fun b h => if hab : (a, b) ∈ l then List.mem_map.2 ⟨(a, b), hab, rfl⟩
-                      else absurd (by simp [hab]) h⟩
+           fun b => if hab : (a, b) ∈ l then .inl (List.mem_map.2 ⟨(a, b), hab, rfl⟩)
+                    else .inr (by simp [hab])⟩
   supp := l.map Prod.fst
-  supp_ok a h :=
-    have ⟨b, hb⟩ := Classical.not_forall.1 h
-    if hab : (a, b) ∈ l then List.mem_map.2 ⟨(a, b), hab, rfl⟩
-    else absurd (by simp [hab]) hb
+  supp_ok a :=
+    if ha : a ∈ l.map Prod.fst then .inl ha
+    else .inr fun b => by
+      simp only [ite_eq_right_iff]
+      exact fun hab => absurd (List.mem_map.2 ⟨(a, b), hab, rfl⟩) ha
 
 /-- The entries of a finite map with a decidably non-nil value. -/
 def entries {A : Type} [DecidableEq A] {P : PSet} (f : FinMap A P)

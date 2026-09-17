@@ -7,8 +7,9 @@
 ```
 
 These are the three standard axioms of Lean's `Init` — not `sorryAx`, so
-nothing is assumed about λFS itself. This note says where each one enters,
-whether it affects evaluation (it does not), and which uses are essential.
+nothing is assumed about λFS itself. This note says where each enters, why
+none of them affect what the semantics *computes*, and why exactly one use of
+`Classical.choice` remains.
 
 ## Summary
 
@@ -16,147 +17,152 @@ whether it affects evaluation (it does not), and which uses are essential.
 |---|---|---|
 | `propext` | the `List` membership API and `simp`/`rw` | incidental |
 | `Quot.sound` | the same — `List` is not a quotient, but its lemma proofs use `Quot` | incidental |
-| `Classical.choice` | four explicit sites, listed below | two of four are essential |
+| `Classical.choice` | one site: `FinMap.curry`, i.e. the rule `⇒i` | essential, short of restricting the language |
 
-Nothing here affects what the semantics computes. Every classical step
-discharges a `Prop`-valued proof obligation — the `supp_ok` field of `FinMap`
-or the `pres` field of `PMap`. Lean erases `Prop` at compile time, so the
-support lists and denotations that `#eval` prints are produced by ordinary
-computation. The `#guard_msgs` checks in `FFP/Examples.lean` run as part of
-`lake build` and confirm this.
-
-## The root cause: `supp_ok` is stated negatively
+## The shape of `supp_ok`
 
 ```lean
 structure FinMap (A : Type) (P : PSet) where
   fn : A → P.carrier
   supp : List A
-  supp_ok : ∀ a, ¬ P.IsNil (fn a) → a ∈ supp
+  supp_ok : ∀ a, a ∈ supp ∨ P.IsNil (fn a)
 ```
 
-`PSet.IsNil` is an arbitrary `Prop`-valued predicate — deliberately, since
-`⊗` is a quotient and the semantics only ever needs to ask "is this nil?",
-never to decide equality of pointed values. Because `IsNil` carries no
-decidability, `supp_ok`'s hypothesis `¬ P.IsNil (fn a)` is a *negation*, and
-its conclusion `a ∈ supp` is a *positive* statement needing a witness. Getting
-a witness out of a negation is precisely what intuitionistic logic forbids, so
-constructing finite maps repeatedly needs excluded middle.
+`PSet.IsNil` is an arbitrary `Prop`-valued predicate — deliberately, since `⊗`
+is a quotient and the semantics only ever needs to ask "is this nil?", never to
+decide equality of pointed values. So `IsNil` carries no decidability, and the
+phrasing of `supp_ok` decides how much classical reasoning the development
+needs. Three phrasings are classically equivalent:
 
-## The four explicit sites
+1. `¬ IsNil (fn a) → a ∈ supp`
+2. `a ∉ supp → IsNil (fn a)`
+3. `a ∈ supp ∨ IsNil (fn a)` ← what we use
 
-### 1. `FFP/Pointed.lean:96` — `FinMap.isNil_of_not_mem`
+Constructively (3) is strictly the strongest, and it is the right choice. A
+`Prop`-valued `Or` cannot be *decided*, but it can be *eliminated* into a
+`Prop` goal. Every construction that needs to know "is this key listed, or is
+its value nil?" therefore gets to ask, and the answer arrives as data rather
+than via excluded middle.
 
-```lean
-theorem FinMap.isNil_of_not_mem (f : FinMap A P) (h : a ∉ f.supp) : P.IsNil (f.fn a) :=
-  Classical.byContradiction fun hn => h (f.supp_ok a hn)
-```
+Both weaker phrasings force classical steps. (1) makes the hypothesis a
+negation and the conclusion a positive membership, so `amp` needs De Morgan
+(`¬(p ∧ q) → ¬p ∨ ¬q`) and `curry`/`ofRel` need `¬∀ → ∃¬`. (2) reverses that,
+fixing those three but pushing an essential `Classical.em` into `uncurry` and
+`bind` instead. Measured, with everything else held fixed:
 
-Double negation elimination: `supp_ok` gives `¬IsNil → a ∈ supp`, and
-contraposing it yields `a ∉ supp → ¬¬IsNil`, one `¬` too many.
+| combinator | phrasing (1) | phrasing (2) | phrasing (3) |
+|---|---|---|---|
+| `amp` (`&i`) | choice | — | — |
+| `curry` (`⇒i`) | choice | — | **choice** |
+| `uncurry` (`⇒e`) | — | choice | — |
+| `bind` (`⊸e`, `⊗i`, `⊗e`, `maybe e`) | — | choice | — |
+| `ofRel` | choice | — | — |
+| `isNil_of_not_mem` | choice | — | — |
 
-This lemma is **dead code** — nothing in the development references it.
+Phrasing (3) leaves exactly one.
 
-### 2. `FFP/Combinators.lean:43` — `FinMap.amp` (rule `&i`)
+## The one that remains: `curry`, i.e. rule `⇒i`
 
-The support of `⟨t, u⟩` is `T.supp ++ U.supp`, and `IsNil` for `P & Q` is a
-conjunction, so the obligation is
-
-```
-¬ (IsNil (T.fn a) ∧ IsNil (U.fn a))  →  a ∈ T.supp ++ U.supp
-```
-
-To pick which side of the append to land in, we must know which conjunct
-fails; but `¬(p ∧ q) → ¬p ∨ ¬q` is exactly De Morgan's law, which is not
-intuitionistically valid. Hence `Classical.em`.
-
-### 3. `FFP/Combinators.lean:53` — `FinMap.curry` (rule `⇒i`)
-
-The obligation is
+Its obligation at `ω` is
 
 ```
-¬ (∀ x, IsNil (T.fn (x, ω)))  →  ω ∈ T.supp.map Prod.snd
+ω ∈ T.supp.map Prod.snd  ∨  ∀ x, IsNil (T.fn (x, ω))
 ```
 
-`Classical.not_forall` turns the negated universal into an existential,
-producing the `x` whose pair `(x, ω)` witnesses the membership. `¬∀ → ∃¬`
-is again not constructive.
-
-### 4. `FFP/Prims.lean:95` — `FinMap.ofRel`
-
-The same `¬∀ → ∃¬` step, for the finite relation built from a list of pairs.
-
-## Two of these are avoidable; two are not
-
-I tested this rather than guessing: reformulating `supp_ok` in the logically
-equivalent *positive* direction,
-
-```lean
-supp_ok : ∀ a, a ∉ supp → P.IsNil (fn a)   -- "outside the list, the value is nil"
-```
-
-turns the hypothesis into the negation and the conclusion into the `Prop` we
-want, which reverses the direction of inference. Under that formulation, with
-the combinators rewritten accordingly:
+The disjunction `T` supplies speaks about **one** pair `(x, ω)` at a time.
+Settling the outer disjunct means knowing whether *some* `x` has
+`(x, ω) ∈ T.supp` — whether a whole fibre of `T.supp` over `ω` is empty. That
+is an unbounded search over `X`, or equivalently a search of `T.supp` for an
+entry whose second component equals `ω`, which needs `DecidableEq (Env Ω)`.
+Both escapes were checked:
 
 ```
-'FFP.FinMap.amp'       depends on axioms: [propext]                              -- was + Classical.choice
-'FFP.FinMap.curry'     depends on axioms: [propext, Quot.sound]                  -- was + Classical.choice
-'FFP.FinMap.isNil_of_not_mem'  does not depend on any axioms                     -- was + Classical.choice
-'FFP.FinMap.uncurry'   depends on axioms: [propext, Classical.choice, Quot.sound]
-'FFP.FinMap.bind'      depends on axioms: [propext, Classical.choice, Quot.sound]
+'FFP.FinMap.curryClassical'  depends on axioms: [propext, Classical.choice, Quot.sound]
+'FFP.FinMap.curryDecidable'  depends on axioms: [propext, Quot.sound]   -- given [DecidableEq (Env Ω)]
 ```
 
-So sites 1–4 above are all incidental — artifacts of how `supp_ok` was
-phrased. `ofRel` goes the same way as `curry`.
+`Env Ω` has no `DecidableEq` because λFS has a function type `A → B` and
+nothing stops `⇒i` from binding a finitely supported variable of function
+type. Getting to zero classical uses would mean restricting finite-map key
+spaces to a first-order fragment — a change to the language, not to the
+formalisation, and one the paper does not make.
 
-But `uncurry` (rule `⇒e`) and `bind` (the left-to-right grounding shared by
-`⊸e`, `⊗i`, `⊗e`, `maybe e`) then acquire an *essential* use of excluded
-middle, which the negative formulation had hidden inside `supp_ok`. In
-`uncurry`, the denotation at `ω'` is
+The contrast with `uncurry` is structural and worth stating. `uncurry`'s index
+`ω'` determines *both* `ω` and `x`, so it can consult `T`'s disjunction at one
+exact point. `curry` projects a coordinate away and must then ask whether a
+fibre is empty. Deciding emptiness of a fibre is precisely the
+non-constructive step — which is apt, given that the paper's thesis is that
+knowing a function's support is what buys you `exists`.
+
+## The runnable part does not depend on any of this
+
+`supp_ok` and `PMap.pres` are `Prop` fields. Lean erases `Prop` during
+compilation, so no proof — classical or otherwise — is present in the code
+that runs. Three independent confirmations:
+
+**1. Nothing classical survives compilation.** Counting references to
+`Classical` in the generated C for every module:
 
 ```
-(T.fn ω).fn x      where (x, ω) = i.extract ω'
+.lake/build/ir/FFP/Combinators.c:0      .lake/build/ir/FFP/Prims.c:0
+.lake/build/ir/FFP/Examples.c:0         .lake/build/ir/FFP/Semantics.c:0
+.lake/build/ir/FFP/Pointed.c:0          .lake/build/ir/FFP/Sugar.c:0
+.lake/build/ir/FFP/Syntax.c:0
 ```
 
-and this is nil for two genuinely different reasons:
+`FinMap.curry` compiles to ordinary list-mapping code; its `supp` is
+`T.supp.map Prod.snd`, computed by `List.mapTR_loop`, and the `Classical.em`
+appears nowhere.
 
-* if `ω ∉ T.supp`, then `T.fn ω` is the nil finite map, so every value is nil;
-* if `ω ∈ T.supp`, then `x ∉ (T.fn ω).supp` follows from `ω' ∉ supp`, and the
-  inner map's own `supp_ok` applies.
+**2. Lean would have refused otherwise.** `Classical.choice` is
+`noncomputable`, and Lean rejects any definition whose *executable* content
+depends on it:
 
-Proving the goal requires knowing *which* case holds, i.e. deciding
-`ω ∈ T.supp`. That is not decidable here: `Env Ω` is a tuple of semantic
-values, and λFS has a function type `A → B`, so `Env Ω` can contain functions
-and has no `DecidableEq`. The case split is unavoidable.
+```
+error: failed to compile definition, consider marking it as 'noncomputable'
+because it depends on 'Classical.choose', which is 'noncomputable'
+```
 
-The case split would also disappear if support lists were required to be
-*exact* rather than over-approximating — but exactness is itself only
-expressible given a decidable `IsNil`, which would rule out the quotient
-structure of `⊗`. So the choice is real, not an accident of presentation.
+`FinMap.curry` and `Term.sem` are plain `def`s that compile, so their data
+content is choice-free by construction — the axiom is confined to the proof.
+
+**3. It runs.** `#eval` uses compiled code, and the `#guard_msgs` checks in
+`FFP/Examples.lean` run as part of `lake build`:
+
+```
+#eval (Examples.costars.run Examples.γ₀).supp.length      -- 161
+#eval FinMap.toList (Examples.stewartAndNovak.run Examples.γ₀)  -- ["Vertigo"]
+```
+
+So the split is exactly as one would want: the support lists, the finite maps
+and the denotations are computed constructively, and `Classical.choice` is
+used only to prove that one of those computed lists really does bound its
+support.
 
 ## Where `propext` and `Quot.sound` come from
 
-Neither is used deliberately. They arrive through Lean's `List` API —
+Neither is deliberate. They arrive through Lean's `List` API —
 `List.mem_map`, `List.mem_flatMap`, `List.mem_append`, `List.eraseDups` — and
-through `simp`/`rw` calls in `FFP/Prims.lean`. Several definitions avoid them
-entirely and are reported axiom-free:
+through `simp`/`rw` in `FFP/Prims.lean`. Several declarations avoid them and
+are reported axiom-free:
 
 ```
-'FFP.FinMap.comp'          does not depend on any axioms
-'FFP.FinMap.single'        does not depend on any axioms
-'FFP.Cover.anyNil'         does not depend on any axioms
-'FFP.Merge.join_split'     does not depend on any axioms
-'FFP.Ins.insert_extract'   does not depend on any axioms
-'FFP.Prim.sum'             does not depend on any axioms
-'FFP.Prim.plus'            does not depend on any axioms
-'FFP.Prim.times'           does not depend on any axioms
+'FFP.FinMap.comp'              does not depend on any axioms
+'FFP.FinMap.single'            does not depend on any axioms
+'FFP.FinMap.isNil_of_not_mem'  does not depend on any axioms
+'FFP.Cover.anyNil'             does not depend on any axioms
+'FFP.Merge.join_split'         does not depend on any axioms
+'FFP.Ins.insert_extract'       does not depend on any axioms
+'FFP.Prim.sum'                 does not depend on any axioms
+'FFP.Prim.plus'                does not depend on any axioms
+'FFP.Prim.times'               does not depend on any axioms
 ```
 
 ## Decidability instances are a separate matter
 
 `FFP/Prims.lean` and `FFP/Examples.lean` ask for `[DecidableEq A]` on the
 *key* type of a finite map (`Prim.eq`, `Prim.sum`, `FinMap.ofList`,
-`FinMap.toList`, …). That is not classical reasoning: it is genuine
-computational content, used to deduplicate support lists and to build
-singleton relations. It is required only by the primitives and the example
-readers, never by the semantics in `FFP/Semantics.lean`.
+`FinMap.ofRel`, `FinMap.toList`, …). That is not classical reasoning but
+genuine computational content: deduplicating support lists, building singleton
+relations, deciding table membership. It is required only by the primitives
+and the example readers, never by the semantics in `FFP/Semantics.lean`.

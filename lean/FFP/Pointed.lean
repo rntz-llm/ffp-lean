@@ -33,12 +33,20 @@ structure PMap (P Q : PSet) where
   pres : ∀ p, P.IsNil p → Q.IsNil (fn p)
 
 /-- Finitely supported maps `A ⇒ P`: a function equipped with a proof of
-finite support, namely a list containing every input with a non-`nil` output.
-(The list may over-approximate the support; it is finite either way.) -/
+finite support.  (The list may over-approximate the support; it is finite
+either way.)
+
+`supp_ok` is stated as a disjunction rather than as either implication
+`¬ IsNil (fn a) → a ∈ supp` or `a ∉ supp → IsNil (fn a)`.  Classically the
+three are equivalent, but the disjunction is constructively stronger, and it
+is what keeps the development almost free of choice: a `Prop`-valued `Or`
+cannot be *decided*, but it can be *eliminated* into a `Prop` goal, so every
+construction that needs to know "is this key in the list, or is its value
+nil?" gets to ask without excluded middle.  See `why_classical.md`. -/
 structure FinMap (A : Type) (P : PSet) where
   fn : A → P.carrier
   supp : List A
-  supp_ok : ∀ a, ¬ P.IsNil (fn a) → a ∈ supp
+  supp_ok : ∀ a, a ∈ supp ∨ P.IsNil (fn a)
 
 namespace PSet
 
@@ -67,7 +75,7 @@ abbrev lolli (P Q : PSet) : PSet where
 abbrev fmap (A : Type) (P : PSet) : PSet where
   carrier := FinMap A P
   IsNil f := ∀ a, P.IsNil (f.fn a)
-  nil := ⟨fun _ => P.nil, [], fun _ h => absurd P.nil_isNil h⟩
+  nil := ⟨fun _ => P.nil, [], fun _ => .inr P.nil_isNil⟩
   nil_isNil _ := P.nil_isNil
 
 /-- `maybe A`: the free pointed set on `A`, pointed by `none`. -/
@@ -92,7 +100,6 @@ end PSet
 /-- A finite map's support list is a superset of its true support, so a value
 that lies outside the list is nil. -/
 theorem FinMap.isNil_of_not_mem {A : Type} {P : PSet} (f : FinMap A P) {a : A}
-    (h : a ∉ f.supp) : P.IsNil (f.fn a) :=
-  Classical.byContradiction fun hn => h (f.supp_ok a hn)
+    (h : a ∉ f.supp) : P.IsNil (f.fn a) := (f.supp_ok a).resolve_left h
 
 end FFP
