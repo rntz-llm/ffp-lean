@@ -1,8 +1,5 @@
 name = "scratch"
-defaultTargets = ["AddComm", "FFP"]
-
-[[lean_lib]]
-name = "AddComm"
+defaultTargets = ["FFP"]
 
 [[lean_lib]]
 name = "FFP"

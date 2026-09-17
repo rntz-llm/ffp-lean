@@ -5,7 +5,6 @@ Lean 4 (v4.34.0, via elan), no Mathlib.
 Build with `lake build`; the `#guard_msgs` checks in `FFP/Examples.lean`
 run as part of the build.
 
-* `AddComm.lean` — commutativity of addition for from-scratch Peano naturals.
 * `FFP/` — the core of λFS from Arntzenius & Willsey, *Finite Functional
   Programming* (see `FFP.lean` for a module map):
   intrinsically typed derivations for the typing rules of figure 4, and the
