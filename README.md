@@ -1,13 +1,19 @@
 # Lean scratch
 
+Claude-generated Lean version of the core of λFS from Arntzenius & Willsey,
+*Finite Functional Programming* (`finite-functional-programming.pdf`). I
+(Michael) haven't checked these definitions fully yet, so take with a grain of
+salt. There is no "core theorem"; the main result is the semantics itself. So
+there may well be gaps between this mechanization and the paper, and no
+mechanical way to check they agree besides reading the definitions, which I
+haven't yet done to my own satisfaction.
+
+Remainder of this file written by Claude.
+
 Lean 4 (v4.34.0, via elan), no Mathlib.
 
 Build with `lake build`; the `#guard_msgs` checks in `FFP/Examples.lean`
 run as part of the build.
-
-`FFP/` formalises the core of λFS from Arntzenius & Willsey, *Finite
-Functional Programming* (`../finite-functional-programming.pdf`). It assumes
-the paper; nothing here is written to stand alone.
 
 ## Scope
 
