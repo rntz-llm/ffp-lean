@@ -81,3 +81,26 @@ support; point preserving maps are functions carrying a proof that they send
 than quotient types. See `why_classical.md` for how the support property is
 phrased and why that phrasing is what keeps the development free of
 `Classical.choice`.
+
+## Separate note: two definitions of finitely supported map
+
+`FinSupp.lean` is a standalone file, independent of everything above (it
+imports nothing from `FFP` and shares no definitions with it), built as its
+own `lake` library. It defines a pointed set in the strict sense — a set with
+*one* distinguished element `nil`, so "is this nil?" means `x = nil` — and
+then two definitions of a finitely supported map into one:
+
+1. a function carrying a *proof* that its support is finite;
+2. a function carrying a *witness* — a list, plus a proof that every input is
+   sent to nil or is in the list — quotiented so all witnesses are equal.
+
+It then asks whether the two are interconvertible. Summary: 2 → 1 holds
+constructively; 1 → 2 holds classically, and the two definitions are then
+isomorphic. Constructively 1 → 2 fails for two separable reasons, each
+identified exactly: the *phrasing* of finiteness (turning "every non-nil key
+is listed" into "every key is nil-valued or listed") is equivalent to excluded
+middle, which is a disproof; and escaping the `Prop` into a `Type` is
+equivalent to subsingleton choice, which Lean can neither prove without
+`Classical.choice` nor refute. Definition 2 is also genuinely stronger
+computationally: over `Nat` keys it *computes* the exact support, where the
+same function from definition 1 is `noncomputable`.

@@ -1,5 +1,8 @@
 name = "scratch"
-defaultTargets = ["FFP"]
+defaultTargets = ["FFP", "FinSupp"]
 
 [[lean_lib]]
 name = "FFP"
+
+[[lean_lib]]
+name = "FinSupp"
