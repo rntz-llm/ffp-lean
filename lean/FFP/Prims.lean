@@ -15,28 +15,15 @@ namespace Prim
 
 /-- `or : bool & bool ⊸ bool` -/
 def or : PMap (PSet.amp PSet.bool PSet.bool) PSet.bool where
-  fn x := match x.1, x.2 with
-    | none, none => none
-    | _, _ => some ()
-  pres x h := by
-    obtain ⟨h₁, h₂⟩ := h
-    show (match x.1, x.2 with | none, none => none | _, _ => some ()) = none
-    rw [show x.1 = none from h₁, show x.2 = none from h₂]
+  fn x := x.1.or x.2
+  pres x h := by simp [show x.1 = none from h.1, show x.2 = none from h.2]
 
 /-- `exists : (A ⇒ bool) ⊸ bool`: is the support non-empty? -/
 def «exists» (A : Type) : PMap (PSet.fmap A PSet.bool) PSet.bool where
   fn f := if f.supp.any fun a => (f.fn a).isSome then some () else none
-  pres f hf := by
-    have h : (f.supp.any fun a => (f.fn a).isSome) = false := by
-      apply Bool.eq_false_iff.2
-      intro h
-      obtain ⟨a, _, ha⟩ := List.any_eq_true.1 h
-      rw [show f.fn a = none from hf a] at ha
-      exact Bool.noConfusion ha
-    show (if f.supp.any (fun a => (f.fn a).isSome) then some () else none) = none
-    rw [h]; rfl
+  pres f hf := by simp [show ∀ a, f.fn a = none from hf]
 
-theorem foldl_add_zero {A : Type} (g : A → Nat) (hg : ∀ a, g a = 0) :
+private theorem foldl_add_zero {A : Type} (g : A → Nat) (hg : ∀ a, g a = 0) :
     ∀ (l : List A) (acc : Nat), l.foldl (fun acc a => acc + g a) acc = acc
   | [], _ => rfl
   | a :: l, acc => by rw [List.foldl_cons, hg a, Nat.add_zero]; exact foldl_add_zero g hg l acc
@@ -92,9 +79,9 @@ def ofRel {A B : Type} [DecidableEq A] [DecidableEq B] (l : List (A × B)) :
   supp := l.map Prod.fst
   supp_ok a :=
     if ha : a ∈ l.map Prod.fst then .inl ha
-    else .inr fun b => by
-      simp only [ite_eq_right_iff]
-      exact fun hab => absurd (List.mem_map.2 ⟨(a, b), hab, rfl⟩) ha
+    else .inr fun b =>
+      if hab : (a, b) ∈ l then absurd (List.mem_map.2 ⟨(a, b), hab, rfl⟩) ha
+      else by simp [hab]
 
 /-- The entries of a finite map with a decidably non-nil value. -/
 def entries {A : Type} [DecidableEq A] {P : PSet} (f : FinMap A P)

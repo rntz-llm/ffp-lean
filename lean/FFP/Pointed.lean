@@ -39,7 +39,7 @@ either way.)
 `supp_ok` is stated as a disjunction rather than as either implication
 `¬ IsNil (fn a) → a ∈ supp` or `a ∉ supp → IsNil (fn a)`.  Classically the
 three are equivalent, but the disjunction is constructively stronger, and it
-is what keeps the development almost free of choice: a `Prop`-valued `Or`
+is what keeps the development free of choice: a `Prop`-valued `Or`
 cannot be *decided*, but it can be *eliminated* into a `Prop` goal, so every
 construction that needs to know "is this key in the list, or is its value
 nil?" gets to ask without excluded middle.  See `why_classical.md`. -/

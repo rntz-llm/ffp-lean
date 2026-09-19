@@ -10,7 +10,8 @@ semantics rests on: nil inputs produce nil outputs.
 
 Because `FinMap.supp_ok` is a disjunction, every case analysis these proofs
 need — "is this key listed, or is its value nil?" — comes from the data
-itself.  Only `curry` needs more; see the note there and `why_classical.md`.
+itself, so none of them needs excluded middle.  `curry` takes an extra step
+to get there; see the note on it, and `why_classical.md`.
 -/
 import FFP.Syntax
 
@@ -60,18 +61,19 @@ private theorem curry_aux {X : Type} (T : FinMap (X × Env Ω) P) (ω : Env Ω) 
     | .inl h => .inl (List.mem_map.2 ⟨(x', ω), h, rfl⟩)
     | .inr hnil => (curry_aux T ω l).imp id fun ih x hx =>
         match List.mem_cons.1 hx with
-        | .inl h => by rw [h]; exact hnil
+        | .inl h => h ▸ hnil
         | .inr hx' => ih x hx'
 
 /-- ⇒i: `{ω ↦ {x ↦ y : (ω,x) ↦ y ∈ T} : ∃ x y. (ω,x) ↦ y ∈ T}`.
 
 Constructive, though it takes a little work.  The obligation at `ω` is
-`ω ∈ T.supp.map Prod.snd ∨ ∀ x, IsNil (T.fn (x, ω))`, and the second disjunct
-quantifies over the whole of `X`.  One might expect to need excluded middle to
-choose a side — deciding whether the fibre of `T.supp` over `ω` is empty —
-but no comparison of keys is required.
+`ω ∈ T.supp.map Prod.snd ∨ ∀ x, IsNil (T.fn (x, ω))`, whose second disjunct
+quantifies over the whole of `X`.  Read as a question to be *decided* it looks
+to need excluded middle — it asks whether the fibre of `T.supp` over `ω` is
+empty, and `Env Ω` has no `DecidableEq` since λFS has function types.  But the
+membership can be *constructed* instead, with no key comparison at all.
 
-Instead, `curry_aux` sweeps `T.supp` and probes `T` at `(x', ω)` for each
+`curry_aux` sweeps `T.supp` and probes `T` at `(x', ω)` for each
 first component `x'` in the list, substituting our own `ω` rather than
 testing the listed one against it.  A probe that answers "listed" hands us
 `(x', ω) ∈ T.supp`, hence `ω ∈ T.supp.map Prod.snd` directly.  If every probe
@@ -87,8 +89,9 @@ def curry {X : Type} (T : FinMap (X × Env Ω) P) : FinMap (Env Ω) (PSet.fmap X
       (fun hmem => hall x (List.mem_map.2 ⟨(x, ω), hmem, rfl⟩)) id
 
 /-- ⇒e: `{(ω,x) ↦ y : ω ↦ f ∈ T, x ↦ y ∈ f}`, with `x` inserted into `Ω` by `i`.
-Unlike `curry` this is constructive: the index `ω'` determines both `ω` and
-`x`, so `T`'s own disjunction can be consulted at that one point. -/
+Straightforward, unlike `curry`: the index `ω'` determines both `ω` and `x`,
+so `T`'s own disjunction can be consulted at that one point rather than swept
+over a list. -/
 def uncurry (i : Ins A Ω Ω') (T : FinMap (Env Ω) (PSet.fmap A.sem P)) :
     FinMap (Env Ω') P where
   fn ω' := (T.fn (i.extract ω').2).fn (i.extract ω').1
