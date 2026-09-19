@@ -1,11 +1,9 @@
 /-
 A worked example, and the axiom audit that checks the constructivity claims.
 -/
-import FinSupp.Convert
+import FinSupp.Sum
 
 namespace FinSupp
-
-def PSet.nat : PSet := ⟨Nat, 0⟩
 
 def demoFn : Nat → Nat := fun n => if n = 3 then 7 else if n = 5 then 2 else 0
 
@@ -25,6 +23,10 @@ def demo : FinMapWit Nat PSet.nat where
 /-- info: [3, 5] -/
 #guard_msgs in
 #eval demo.support (fun n : Nat => n == 0) (fun x : Nat => by simp [PSet.nat])
+
+/-- info: 9 -/
+#guard_msgs in
+#eval demo.sum
 
 /-! ## Axiom audit
 
@@ -57,5 +59,14 @@ def demo : FinMapWit Nat PSet.nat where
 
 /-- info: 'FinSupp.FinMapProp.support' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms FinMapProp.support
+
+/-- info: 'FinSupp.FinMapWit.sum' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in #print axioms FinMapWit.sum
+
+/-- info: 'FinSupp.Summation.wlem' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in #print axioms Summation.wlem
+
+/-- info: 'FinSupp.FinMapProp.sum' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms FinMapProp.sum
 
 end FinSupp

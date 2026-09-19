@@ -79,6 +79,8 @@ structure FinMapWit (A : Type) (P : PSet) where
 theorem FinMapWit.ext {F G : FinMapWit A P} (h : F.fn = G.fn) : F = G := by
   cases F; cases G; cases h; exact congrArg _ (Trunc.eq _ _)
 
+abbrev PSet.nat : PSet := ⟨Nat, 0⟩
+
 /-- A type with a list of all its elements. -/
 structure Listable (A : Type) where
   elems : List A
