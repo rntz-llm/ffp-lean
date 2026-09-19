@@ -119,10 +119,15 @@ proof erasure — but the data/proof split is still worth recording. `supp_ok`
 and `PMap.pres` are `Prop` fields, erased during compilation:
 
 ```
-Classical references in generated C, all modules:
+$ grep -c Classical .lake/build/ir/FFP/*.c
 Combinators.c:0   Examples.c:0   Pointed.c:0   Prims.c:0
 Semantics.c:0     Sugar.c:0      Syntax.c:0
 ```
+
+The complementary check is that Lean rejects a definition whose executable
+content really does use choice, so compiling at all is evidence of erasure:
+`def pick (h : ∃ n : Nat, n > 3) : Nat := Classical.choose h` fails with
+"failed to compile definition, consider marking it as 'noncomputable'".
 
 `Term.sem` is a plain `def` that compiles, `#eval` runs it, and the
 `#guard_msgs` checks in `FFP/Examples.lean` run as part of `lake build`.
