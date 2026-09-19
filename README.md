@@ -84,23 +84,13 @@ phrased and why that phrasing is what keeps the development free of
 
 ## Separate note: two definitions of finitely supported map
 
-`FinSupp.lean` is a standalone file, independent of everything above (it
-imports nothing from `FFP` and shares no definitions with it), built as its
-own `lake` library. It defines a pointed set in the strict sense — a set with
-*one* distinguished element `nil`, so "is this nil?" means `x = nil` — and
-then two definitions of a finitely supported map into one:
-
-1. a function carrying a *proof* that its support is finite;
-2. a function carrying a *witness* — a list, plus a proof that every input is
-   sent to nil or is in the list — quotiented so all witnesses are equal.
-
-It then asks whether the two are interconvertible. Summary: 2 → 1 holds
-constructively; 1 → 2 holds classically, and the two definitions are then
-isomorphic. Constructively 1 → 2 fails for two separable reasons, each
-identified exactly: the *phrasing* of finiteness (turning "every non-nil key
-is listed" into "every key is nil-valued or listed") is equivalent to excluded
-middle, which is a disproof; and escaping the `Prop` into a `Type` is
-equivalent to subsingleton choice, which Lean can neither prove without
-`Classical.choice` nor refute. Definition 2 is also genuinely stronger
-computationally: over `Nat` keys it *computes* the exact support, where the
-same function from definition 1 is `noncomputable`.
+`FinSupp.lean` is standalone (its own lake library, nothing shared with `FFP`).
+It defines a pointed set strictly — one distinguished element, so nil-ness is
+just equality — and two finitely supported map types: one carrying a proof that
+the support is finite, one carrying a list witness quotiented so all witnesses
+are equal. Witness-to-proof is constructive; the reverse is classical, and the
+two are then isomorphic. Constructively the reverse fails for two reasons, each
+identified exactly: the phrasing of finiteness is equivalent to excluded middle
+(a disproof), and escaping the `Prop` is equivalent to subsingleton choice
+(unprovable without `Classical.choice`, unrefutable with it). Over `Nat` keys
+the witness version computes the support; the proof version is `noncomputable`.
