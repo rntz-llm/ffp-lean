@@ -26,7 +26,6 @@ not obvious and two plausible formulations of finite support fail.
 ```
 'FFP.FinMap.comp'              does not depend on any axioms
 'FFP.FinMap.single'            does not depend on any axioms
-'FFP.FinMap.isNil_of_not_mem'  does not depend on any axioms
 'FFP.Cover.anyNil'             does not depend on any axioms
 'FFP.Merge.join_split'         does not depend on any axioms
 'FFP.Ins.insert_extract'       does not depend on any axioms
@@ -67,7 +66,6 @@ everything else held fixed:
 | `uncurry` (`⇒e`) | — | choice | — |
 | `bind` (`⊸e`, `⊗i`, `⊗e`, `maybe e`) | — | choice | — |
 | `ofRel` | choice | — | — |
-| `isNil_of_not_mem` | choice | — | — |
 
 Under (1) the hypothesis is a negation and the conclusion a positive
 membership, so `amp` needs De Morgan and `curry`/`ofRel` need `¬∀ → ∃¬`.

@@ -36,9 +36,6 @@ def comp {A : Type} (T : FinMap A P) (g : A → P.carrier → Q.carrier)
   supp := T.supp
   supp_ok a := (T.supp_ok a).imp id (hg a _)
 
-theorem comp_isNil {A : Type} {T : FinMap A P} {g hg} (hT : ∀ a, P.IsNil (T.fn a)) :
-    ∀ a, Q.IsNil ((comp T g hg).fn a) := fun a => hg a _ (hT a)
-
 /-- &i: `{a ↦ ⟨x, y⟩ : a ↦ x ∈ T, a ↦ y ∈ U}`. -/
 def amp {A : Type} (T : FinMap A P) (U : FinMap A Q) : FinMap A (PSet.amp P Q) where
   fn a := (T.fn a, U.fn a)

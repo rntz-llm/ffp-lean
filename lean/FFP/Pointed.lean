@@ -97,9 +97,4 @@ abbrev bool : PSet := maybe Unit
 
 end PSet
 
-/-- A finite map's support list is a superset of its true support, so a value
-that lies outside the list is nil. -/
-theorem FinMap.isNil_of_not_mem {A : Type} {P : PSet} (f : FinMap A P) {a : A}
-    (h : a ∉ f.supp) : P.IsNil (f.fn a) := (f.supp_ok a).resolve_left h
-
 end FFP
