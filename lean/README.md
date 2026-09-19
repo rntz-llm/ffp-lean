@@ -28,16 +28,38 @@ than as constants of the language.
 
 ## Entry points
 
-| Paper | Here |
-|---|---|
-| fig. 1, pointed sets and their constructions | `Pointed.lean`: `PSet`, `PMap`, `FinMap`; `PSet.amp`/`tensor`/`lolli`/`fmap`/`maybe`/`nat`/`bool` |
-| figs. 2 + 4, syntax and typing rules | `Syntax.lean`: `Expr` and `Term`, one constructor per rule. Intrinsically typed, so the two figures coincide — a `Term Γ Δ Ω P` *is* a derivation of `Γ / Δ / Ω ⊢ t : P` |
-| §5, splitting and grounding of contexts | `Syntax.lean`: `Cover` for `Δ₁ ∪ Δ₂`, `Merge` for `Ω₁, Ω₂`, `Ins` for `⇒e`'s insertion — explicit because the paper treats contexts as sets |
-| fig. 3, sugar and primitives | `Sugar.lean`: `Term.true`/`false`/`and`/`let_`/`when`. `Prims.lean`: `Prim.or`/`exists`/`sum`/`plus`/`times`/`eq` |
-| fig. 5, semantics of types and contexts | `Syntax.lean`: `Ty.sem`, `PTy.sem`, `Env`, `PEnv`; `Semantics.lean`: `PSet.smashCtx` for the n-ary smash product `⟦Δ⟧` |
-| fig. 6, semantics of expressions and terms | `Semantics.lean`: `Expr.sem` and `Term.sem`. The comprehensions each equation is built from are the combinators in `Combinators.lean` |
-| p. 14, the typing of the semantics | `Semantics.lean`: `Term.semP`, packaging `Term.sem` as the point preserving map `⟦Γ⟧ → ⟦Δ⟧ ⊸ ⟦Ω⟧ ⇒ ⟦P⟧` |
-| §3, example programs | `Examples.lean`: `costars`, `hitchcockAlone`, `filmCount`, `intersect`, `union`, evaluated against a small `stars` table |
+- **fig. 1**, pointed sets and their constructions —
+  `Pointed.lean`: `PSet`, `PMap`, `FinMap`; and `PSet.amp`, `tensor`,
+  `lolli`, `fmap`, `maybe`, `nat`, `bool`.
+
+- **figs. 2 and 4**, syntax and typing rules —
+  `Syntax.lean`: `Expr` and `Term`, one constructor per rule. Intrinsically
+  typed, so the two figures coincide: a `Term Γ Δ Ω P` *is* a derivation of
+  `Γ / Δ / Ω ⊢ t : P`.
+
+- **§5**, splitting and grounding of contexts —
+  `Syntax.lean`: `Cover` for `Δ₁ ∪ Δ₂`, `Merge` for `Ω₁, Ω₂`, and `Ins` for
+  `⇒e`'s insertion. Explicit here because the paper treats contexts as sets.
+
+- **fig. 3**, sugar and primitives —
+  `Sugar.lean`: `Term.true`, `false`, `and`, `let_`, `when`.
+  `Prims.lean`: `Prim.or`, `exists`, `sum`, `plus`, `times`, `eq`.
+
+- **fig. 5**, semantics of types and contexts —
+  `Syntax.lean`: `Ty.sem`, `PTy.sem`, `Env`, `PEnv`.
+  `Semantics.lean`: `PSet.smashCtx`, the n-ary smash product `⟦Δ⟧`.
+
+- **fig. 6**, semantics of expressions and terms —
+  `Semantics.lean`: `Expr.sem` and `Term.sem`. The set comprehensions each
+  equation is built from are the combinators in `Combinators.lean`.
+
+- **p. 14**, the typing of the semantics —
+  `Semantics.lean`: `Term.semP`, packaging `Term.sem` as the point
+  preserving map `⟦Γ⟧ → ⟦Δ⟧ ⊸ ⟦Ω⟧ ⇒ ⟦P⟧`.
+
+- **§3**, example programs —
+  `Examples.lean`: `costars`, `hitchcockAlone`, `filmCount`, `intersect`
+  and `union`, evaluated against a small `stars` table.
 
 Some of these exist for fidelity to the paper rather than because anything
 calls them, and should not be mistaken for dead code: `Term.semP` (and the

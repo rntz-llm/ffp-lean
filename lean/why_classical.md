@@ -13,11 +13,10 @@ not obvious and two plausible formulations of finite support fail.
 
 ## Summary
 
-| Axiom | Where it comes from | Essential? |
-|---|---|---|
-| `propext` | the `List` membership API and `simp`/`rw` | incidental |
-| `Quot.sound` | the same — `List` is not a quotient, but its lemma proofs use `Quot` | incidental |
-| `Classical.choice` | nowhere | — |
+- `propext` — incidental, from the `List` membership API and `simp`/`rw`.
+- `Quot.sound` — incidental, from the same; `List` is not a quotient, but
+  its lemma proofs use `Quot`.
+- `Classical.choice` — not used anywhere.
 
 `propext` and `Quot.sound` are not used deliberately. They arrive through
 `List.mem_map`, `List.mem_flatMap`, `List.mem_append`, `List.eraseDups` and
@@ -59,13 +58,13 @@ listed, or is its value nil?" gets to ask, and the answer arrives as data.
 The weaker phrasings each force `Classical.em` somewhere. Measured, with
 everything else held fixed:
 
-| combinator | phrasing (1) | phrasing (2) | phrasing (3) |
-|---|---|---|---|
-| `amp` (`&i`) | choice | — | — |
-| `curry` (`⇒i`) | choice | — | — |
-| `uncurry` (`⇒e`) | — | choice | — |
-| `bind` (`⊸e`, `⊗i`, `⊗e`, `maybe e`) | — | choice | — |
-| `ofRel` | choice | — | — |
+| combinator                           | phrasing (1) | phrasing (2) | phrasing (3) |
+|--------------------------------------|--------------|--------------|--------------|
+| `amp` (`&i`)                         | choice       | —            | —            |
+| `curry` (`⇒i`)                       | choice       | —            | —            |
+| `uncurry` (`⇒e`)                     | —            | choice       | —            |
+| `bind` (`⊸e`, `⊗i`, `⊗e`, `maybe e`) | —            | choice       | —            |
+| `ofRel`                              | choice       | —            | —            |
 
 Under (1) the hypothesis is a negation and the conclusion a positive
 membership, so `amp` needs De Morgan and `curry`/`ofRel` need `¬∀ → ∃¬`.
