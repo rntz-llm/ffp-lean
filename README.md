@@ -84,13 +84,15 @@ phrased and why that phrasing is what keeps the development free of
 
 ## Separate note: two definitions of finitely supported map
 
-`FinSupp.lean` is standalone (its own lake library, nothing shared with `FFP`).
-It defines a pointed set strictly — one distinguished element, so nil-ness is
-just equality — and two finitely supported map types: one carrying a proof that
-the support is finite, one carrying a list witness quotiented so all witnesses
-are equal. Witness-to-proof is constructive; the reverse is classical, and the
-two are then isomorphic. Constructively the reverse fails for two reasons, each
-identified exactly: the phrasing of finiteness is equivalent to excluded middle
-(a disproof), and escaping the `Prop` is equivalent to subsingleton choice
+`FinSupp/` is standalone (its own lake library, nothing shared with `FFP`):
+`Defs.lean` defines a pointed set strictly — one distinguished element, so
+nil-ness is just equality — and two finitely supported map types, `FinMapProp`
+(carrying a proof that the support is finite) and `FinMapWit` (carrying a list
+witness, quotiented so all witnesses are equal). `Convert.lean` relates them:
+`Wit → Prop` is constructive; the reverse is classical, and the two are then
+isomorphic. Constructively the reverse fails for two reasons, each identified
+exactly — the phrasing of finiteness is equivalent to excluded middle (a
+disproof), and escaping the `Prop` is equivalent to subsingleton choice
 (unprovable without `Classical.choice`, unrefutable with it). Over `Nat` keys
-the witness version computes the support; the proof version is `noncomputable`.
+`FinMapWit` computes its support; `FinMapProp`'s version is `noncomputable`.
+`Examples.lean` has a worked example and the axiom audit.
