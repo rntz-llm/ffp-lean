@@ -73,7 +73,7 @@ mutual
       let U := fun ω₁ => u.sem (Env.append ω₁ γ) (c.proj₂ δ)
       ⟨.bind m T.map (fun ω₁ => (U ω₁).map) (fun f y => f.fn y)
           (fun ω₁ _ h => h.elim (fun hf => hf _) (fun hy => (T.map.fn ω₁).pres _ hy)),
-       fun h => FinMap.bind_isNil fun ω => match c.anyNil δ h with
+       fun h => FinMap.bind_isNil fun _ => match c.anyNil δ h with
          | .inl h₁ => .inl (T.pres h₁ _)
          | .inr h₂ => .inr ((U _).pres h₂ _)⟩
     -- ⟦t x⟧ γ δ = {(ω,x) ↦ y : ω ↦ f ∈ ⟦t⟧γδ, x ↦ y ∈ f}
@@ -102,7 +102,7 @@ mutual
       let T := t.sem γ (c.proj₁ δ)
       let U := fun ω₁ => u.sem (Env.append ω₁ γ) (c.proj₂ δ)
       ⟨.bind m T.map (fun ω₁ => (U ω₁).map) Prod.mk (fun _ _ h => h),
-       fun h => FinMap.bind_isNil fun ω => match c.anyNil δ h with
+       fun h => FinMap.bind_isNil fun _ => match c.anyNil δ h with
          | .inl h₁ => .inl (T.pres h₁ _)
          | .inr h₂ => .inr ((U _).pres h₂ _)⟩
     -- ⟦let (x,y) = t in u⟧ γ δ
@@ -114,7 +114,7 @@ mutual
       ⟨.bind m T.map (fun ω₁ => (U ω₁).map) (fun _ z => z)
           (fun ω₁ ω₂ h => h.elim
             (fun hxy => (U ω₁).pres (hxy.elim (fun hx => .inr (.inl hx)) .inl) ω₂) id),
-       fun h => FinMap.bind_isNil fun ω => match c.anyNil δ h with
+       fun h => FinMap.bind_isNil fun _ => match c.anyNil δ h with
          | .inl h₁ => .inl (T.pres h₁ _)
          | .inr h₂ => .inr ((U _).pres (.inr (.inr h₂)) _)⟩
     -- ⟦Γ/·/· ⊢ just e : maybe A⟧ γ δ = {() ↦ just (⟦e⟧γ) : δ ≠ nil}

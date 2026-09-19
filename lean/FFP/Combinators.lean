@@ -48,23 +48,43 @@ def amp {A : Type} (T : FinMap A P) (U : FinMap A Q) : FinMap A (PSet.amp P Q) w
       | .inl h => .inl (List.mem_append.2 (.inr h))
       | .inr hq => .inr ⟨hp, hq⟩
 
+/-- Auxiliary to `curry`.  Walking the list `l`, probe `T` at `(x', ω)` for
+each first component `x'` drawn from `l`, keeping *our own* `ω`.  Either some
+probe reports membership — which is already a witness that `ω` is in the
+curried support — or every probe reports nil. -/
+private theorem curry_aux {X : Type} (T : FinMap (X × Env Ω) P) (ω : Env Ω) :
+    ∀ l : List (X × Env Ω),
+      ω ∈ T.supp.map Prod.snd ∨ ∀ x, x ∈ l.map Prod.fst → P.IsNil (T.fn (x, ω))
+  | [] => .inr fun _ hx => absurd hx (by simp)
+  | (x', _) :: l => match T.supp_ok (x', ω) with
+    | .inl h => .inl (List.mem_map.2 ⟨(x', ω), h, rfl⟩)
+    | .inr hnil => (curry_aux T ω l).imp id fun ih x hx =>
+        match List.mem_cons.1 hx with
+        | .inl h => by rw [h]; exact hnil
+        | .inr hx' => ih x hx'
+
 /-- ⇒i: `{ω ↦ {x ↦ y : (ω,x) ↦ y ∈ T} : ∃ x y. (ω,x) ↦ y ∈ T}`.
 
-This is the one combinator that needs excluded middle.  Its obligation at `ω`
-is `ω ∈ T.supp.map Prod.snd ∨ ∀ x, IsNil (T.fn (x, ω))`, and the disjunction
-`T` supplies speaks about one pair `(x, ω)` at a time; settling the outer
-disjunct means knowing whether *some* `x` has `(x, ω) ∈ T.supp`, i.e. whether
-a whole fibre of `T.supp` over `ω` is empty.  `DecidableEq (Env Ω)` would do
-it constructively, but `Env Ω` can hold functions (λFS has `A → B`), so no
-such instance exists.  Currying projects a coordinate away, and deciding
-emptiness of the fibre is exactly the non-constructive step. -/
+Constructive, though it takes a little work.  The obligation at `ω` is
+`ω ∈ T.supp.map Prod.snd ∨ ∀ x, IsNil (T.fn (x, ω))`, and the second disjunct
+quantifies over the whole of `X`.  One might expect to need excluded middle to
+choose a side — deciding whether the fibre of `T.supp` over `ω` is empty —
+but no comparison of keys is required.
+
+Instead, `curry_aux` sweeps `T.supp` and probes `T` at `(x', ω)` for each
+first component `x'` in the list, substituting our own `ω` rather than
+testing the listed one against it.  A probe that answers "listed" hands us
+`(x', ω) ∈ T.supp`, hence `ω ∈ T.supp.map Prod.snd` directly.  If every probe
+answers "nil", the unbounded `∀ x` collapses onto that finite sweep: for an
+arbitrary `x`, `T.supp_ok (x, ω)` either gives nil outright, or puts
+`(x, ω)` in `T.supp` — so `x` is one of the `x'` already swept. -/
 def curry {X : Type} (T : FinMap (X × Env Ω) P) : FinMap (Env Ω) (PSet.fmap X P) where
   fn ω := ⟨fun x => T.fn (x, ω), T.supp.map Prod.fst,
            fun x => (T.supp_ok (x, ω)).imp (fun h => List.mem_map.2 ⟨(x, ω), h, rfl⟩) id⟩
   supp := T.supp.map Prod.snd
-  supp_ok ω := (Classical.em (ω ∈ T.supp.map Prod.snd)).imp id
-    fun hno x => (T.supp_ok (x, ω)).resolve_left
-      fun hm => hno (List.mem_map.2 ⟨(x, ω), hm, rfl⟩)
+  supp_ok ω := (curry_aux T ω T.supp).imp id fun hall x =>
+    (T.supp_ok (x, ω)).elim
+      (fun hmem => hall x (List.mem_map.2 ⟨(x, ω), hmem, rfl⟩)) id
 
 /-- ⇒e: `{(ω,x) ↦ y : ω ↦ f ∈ T, x ↦ y ∈ f}`, with `x` inserted into `Ω` by `i`.
 Unlike `curry` this is constructive: the index `ω'` determines both `ω` and
@@ -113,7 +133,7 @@ def letJust {X : Type} (m : Merge Ω₁ Ω₂ Ω) (T : FinMap (Env Ω₁) (PSet.
 theorem letJust_isNil_left {X : Type} {m : Merge Ω₁ Ω₂ Ω}
     {T : FinMap (Env Ω₁) (PSet.maybe X)} {U : Env Ω₁ → X → FinMap (Env Ω₂) P}
     (hT : ∀ ω₁, T.fn ω₁ = none) : ∀ ω, P.IsNil ((letJust m T U).fn ω) :=
-  bind_isNil fun ω => .inl (hT _)
+  bind_isNil fun _ => .inl (hT _)
 
 theorem letJust_isNil_right {X : Type} {m : Merge Ω₁ Ω₂ Ω}
     {T : FinMap (Env Ω₁) (PSet.maybe X)} {U : Env Ω₁ → X → FinMap (Env Ω₂) P}
