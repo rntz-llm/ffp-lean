@@ -15,9 +15,11 @@ escaping the `Prop` is equivalent to subsingleton choice.  Both vanish for
 listable key types.  Only `FinMapWit` computes its support.
 
 Summing a map into `(ℕ, +, 0)` needs decidable equality of *keys* — with it
-`FinMapWit.sum` computes, without it `Summation.wlem` rules any sum out.
-Decidable equality of values is never used, so the construction generalises to
-any commutative monoid.
+`FinMapWit.sum` computes, without it `Summation.wlem` rules any sum out, and
+`Summation.ofWLEM` builds one back from weak excluded middle, so for ℕ that is
+the exact strength.  `FinMapWit.sum` never tests values for equality, so it
+generalises to any commutative monoid; the converse does not, as it needs
+`¬¬`-stable equality on values.
 -/
 import FinSupp.Defs
 import FinSupp.Convert

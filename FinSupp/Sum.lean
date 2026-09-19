@@ -3,9 +3,11 @@ Summing a finitely supported map into `(ℕ, +, 0)`.
 
 With decidable key equality, definition 2's sum computes: deduplicate the
 witness list (junk keys contribute 0, duplicates would be counted twice) and
-add up.  Without it there is no sum at all — `Summation.wlem`.  Definition 1
-has no sum either way: ℕ is not a subsingleton, so its `Prop` cannot be
-eliminated into ℕ; `Classical.choice` supplies one, noncomputably.
+add up.  Without it there is no sum: `Summation.wlem` extracts weak excluded
+middle from any summation operator, and `Summation.ofWLEM` builds one back, so
+for ℕ values that is exactly the strength required.  Definition 1 has no sum
+either way: ℕ is not a subsingleton, so its `Prop` cannot be eliminated into ℕ;
+`Classical.choice` supplies one, noncomputably.
 -/
 import FinSupp.Convert
 
@@ -199,6 +201,80 @@ theorem Summation.wlem (S : Summation) (q : Prop) : ¬q ∨ ¬¬q := by
   by_cases h : S.sum _ ⟨f, Trunc.mk w⟩ = 1
   · exact Or.inr fun hn => by have := h2 hn; omega
   · exact Or.inl fun hq => h (h1 hq)
+
+/-! ## WLEM suffices
+
+Conversely, weak excluded middle — as data, since a `Prop` cannot define a ℕ —
+builds a summation operator, so for ℕ values that is the exact strength.
+
+`¬¬`-equality is an equivalence relation; WLEM decides it; and `f` respects it
+because equality in ℕ is `¬¬`-stable (this is the one step that would need an
+extra hypothesis for a general commutative monoid).  Quotienting by it yields a
+key type with decidable equality, where `FinMapWit.sum` already works.  Keys
+that are not provably distinct get merged, which is sound: no duplicate-free
+cover can contain two of them. -/
+
+/-- Weak excluded middle, as data: `¬q` is decidable for every `q`. -/
+def WLEM : Type := ∀ q : Prop, Decidable ¬q
+
+/-- `a ≈ b` when `a = b` is not refutable. -/
+def nnSetoid (A : Type) : Setoid A where
+  r a b := ¬¬(a = b)
+  iseqv :=
+    { refl := fun _ h => h rfl
+      symm := fun h hn => h fun he => hn he.symm
+      trans := fun h₁ h₂ hn => h₁ fun e₁ => h₂ fun e₂ => hn (e₁.trans e₂) }
+
+/-- `A` with the unrefutably-equal keys merged. -/
+def Merged (A : Type) : Type := Quotient (nnSetoid A)
+
+namespace Merged
+variable {A : Type}
+
+def mk (a : A) : Merged A := Quotient.mk (nnSetoid A) a
+
+theorem mk_ne (h : a ≠ b) : (mk a : Merged A) ≠ mk b := fun he => (Quotient.exact he) h
+
+def decEq (w : WLEM) : DecidableEq (Merged A) := fun x y =>
+  Quotient.recOnSubsingleton₂ (motive := fun x y => Decidable (x = y)) x y fun a b =>
+    match w (a = b) with
+    | isTrue h => isFalse fun he => (Quotient.exact he) h
+    | isFalse h => isTrue (Quotient.sound h)
+
+/-- `f` descends: ℕ-equality is `¬¬`-stable. -/
+def lift (f : A → Nat) : Merged A → Nat :=
+  Quotient.lift f fun a b hab => by
+    by_cases he : f a = f b
+    · exact he
+    · exact absurd (fun hab' => he (congrArg f hab')) hab
+
+@[simp] theorem lift_mk (f : A → Nat) (a : A) : lift f (mk a) = f a := rfl
+
+def witness {f : A → Nat} (v : Witness (P := PSet.nat) f) :
+    Witness (P := PSet.nat) (lift f) where
+  supp := v.supp.map mk
+  ok x := by
+    induction x using Quotient.ind
+    next a => exact (v.ok a).imp id (fun h => List.mem_map_of_mem h)
+
+end Merged
+
+theorem sumOver_map_mk {A : Type} (f : A → Nat) :
+    ∀ l : List A, sumOver (Merged.lift f) (l.map Merged.mk) = sumOver f l
+  | [] => rfl
+  | _ :: t => congrArg _ (sumOver_map_mk f t)
+
+/-- Weak excluded middle builds a summation operator. -/
+def Summation.ofWLEM (w : WLEM) : Summation where
+  sum A F :=
+    letI := Merged.decEq (A := A) w
+    FinMapWit.sum ⟨Merged.lift F.fn, F.wit.lift (fun v => Trunc.mk (Merged.witness v))
+      (fun _ _ => Trunc.eq _ _)⟩
+  spec A f v hv := by
+    letI := Merged.decEq (A := A) w
+    have hnodup : (v.supp.map Merged.mk).Nodup :=
+      List.pairwise_map.mpr (hv.imp Merged.mk_ne)
+    exact (FinMapWit.sum_eq _ (Merged.witness v) hnodup).trans (sumOver_map_mk f v.supp)
 
 /-- Definition 1's sum exists only classically. -/
 noncomputable def FinMapProp.sum [DecidableEq A] (F : FinMapProp A PSet.nat) : Nat :=
